@@ -1,4 +1,4 @@
-# inserm-ML-workshop-266
+# Phase 2 : Inserm workshop on Machine Learning in Biology
 
 <!-- TABLE OF CONTENTS -->
 <details open="open">
@@ -20,8 +20,8 @@
 </details>
 
 
-<!-- ABOUT THE PROJECT -->
-## About The Project
+<!-- ABOUT THE WORKSHOP -->
+## About The Workshop
 
 
 <!-- GETTING STARTED -->
