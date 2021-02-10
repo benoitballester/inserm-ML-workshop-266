@@ -29,6 +29,29 @@
 
 ### Prerequisites
 
+R libraries:
+GenomicRanges
+Biostrings
+pROC
+tensorflow
+keras
+reticulate
+TFBSTools
+JASPAR2020
+tensorflow
+keras
+reticulate
+motifStack
+universalmotif
+motifmatchr
+kebabs
+pROC
+glmnet
+doParallel
+ranger
+e1071
+
+
 ### Installation
 
 
