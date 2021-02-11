@@ -72,10 +72,9 @@ The following R libraries must be installed (using bioconductor):
 <!-- SESSION 1 -->
 ## Day 1
 
-During the morning of the first day, we will first preprocess ChIP-seq/DNase-seq (positive) peaks obtained from different experiments: CTCF, POL2, H3K4me3 and DNase-seq. From the peaks, we will generate random control (negative) peaks with similar length, GC content and repeat distribution. From the peaks, we will extract DNA sequences. Then, we will split the sequences in a train and a test sets for machine/deep learning model training and prediction evaluation. From the sequences, we will build features using k-mer counts and known DNA binding protein motif counts. These features will be used for building machine learning models such as logistic lasso regression, random forests and support vector machines. 
+During the morning, we will first preprocess ChIP-seq/DNase-seq (positive) peaks obtained from different experiments: CTCF, POL2, H3K4me3 and DNase-seq. From the peaks, we will generate random control (negative) peaks with similar length, GC content and repeat distribution. From the peaks, we will extract DNA sequences. Then, we will split the sequences in a train and a test sets for machine/deep learning model training and prediction evaluation. From the sequences, we will build features using k-mer counts and known DNA binding protein motif counts. These features will be used for building machine learning models such as logistic lasso regression, random forests and support vector machines. The model predictions will be evaluated using receiver operating characteristic curves. 
 
-
-
+During the afternoon, we will first encode the DNA sequences as tensors using one-hot encoding. Then, we will build different deep learning architectures by adding different layers (convolution, dense, dropout, LSTM, ...). We will build a simple convolutional model, a model with parallel convolutional layers, a model with multiple convolutional layers, and a model including an LSTM layer. We will train the model and play with different hyperparameters. We will compare the accuracy on the training and the validation sets. We will then extract the features from the convolutional layer of the simple convolutional model, and convert them to Position Frequency Matrices (PFMs) that are commonly used for DNA motif analysis. We will trim and cluster the motifs and compare them to JASPAR database. We will assess the importance of each motif as predictor. 
 
 <!-- SESSION 2 -->
 ## Day 2
