@@ -72,7 +72,9 @@ The following R libraries must be installed (using bioconductor):
 <!-- SESSION 1 -->
 ## Day 1
 
-During the morning of the first day, we will first preprocess ChIP-seq/DNase-seq peaks obtained from different experiments: CTCF, POL2, H3K4me3 and DNase-seq. 
+During the morning of the first day, we will first preprocess ChIP-seq/DNase-seq (positive) peaks obtained from different experiments: CTCF, POL2, H3K4me3 and DNase-seq. From the peaks, we will generate random control (negative) peaks with similar length, GC content and repeat distribution. From the peaks, we will extract DNA sequences. Then, we will split the sequences in a train and a test sets for machine/deep learning model training and prediction evaluation. From the sequences, we will build features using k-mer counts and known DNA binding protein motif counts. These features will be used for building machine learning models such as logistic lasso regression, random forests and support vector machines. 
+
+
 
 
 <!-- SESSION 2 -->
