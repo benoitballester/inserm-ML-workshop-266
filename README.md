@@ -78,3 +78,5 @@ During the afternoon, we will first encode the DNA sequences as tensors using on
 
 <!-- DAY 2 -->
 ## Day 2
+
+We will use a deep learning model trained during the previous day to predict the impact of known non-coding single nucleotide polymorphisms (SNPs) on the binding of a particular transcription factor, histone mark activity or chromatin accessibility. The aim of the predictions will be to better understand the underlying biological mechanism of a non-coding SNP that is known to be associated to a particular common genetic disease (GWAS), and/or to be associated with gene expression deregulation. Moreover, we will compute mutation maps to evalute the impact of SNPs on a whole DNA region. 
