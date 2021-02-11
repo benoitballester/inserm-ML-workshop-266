@@ -31,10 +31,19 @@ We will focus on the prediction of genomic experimental output such as transcrip
 
 ### Prerequisites
 
-The following R libraries must be installed:
+If you have an Nvidia GPU, then you must install CUDA and cuDNN libraries. See:
+https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html
+https://developer.nvidia.com/cudnn
+Beaware that you should check the compatibility between your graphic card and the versions of CUDA and cuDNN you want to install. This is a bit tricky!
+
+If you don't have an Nvidia GPU, you can use the CPU, which will be slower for deep learning computations. 
+
+You need to install tensorflow and keras R packages. See the following link for explanations:
+https://tensorflow.rstudio.com/installation/gpu/local_gpu/
+Ideally, you should install libraries for GPUs if you have an Nvidia GPU. If not, you can also install tensorflow and keras for cpu. 
+
+The following R libraries must be installed (using install.packages() function):
 - pROC
-- tensorflow
-- keras
 - reticulate
 - tensorflow
 - keras
@@ -59,9 +68,6 @@ The following R libraries must be installed (using bioconductor):
 - universalmotif
 - motifmatchr
 - kebabs
-
-
-### Installation
 
 
 <!-- SESSION 1 -->
