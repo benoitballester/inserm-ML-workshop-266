@@ -31,9 +31,9 @@ We will focus on the prediction of genomic experimental output such as transcrip
 
 ### Prerequisites
 
-R libraries:
-GenomicRanges
-Biostrings
+The following R libraries must be installed:
+- GenomicRanges
+- Biostrings
 pROC
 tensorflow
 keras
