@@ -34,7 +34,7 @@ We will focus on the prediction of genomic experimental output such as transcrip
 If you have an Nvidia GPU, then you must install CUDA and cuDNN libraries. See:
 https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html
 https://developer.nvidia.com/cudnn
-Be aware that you should check the compatibility between your graphic card and the versions of CUDA and cuDNN you want to install. This is a bit tricky!
+Be aware that you should check the compatibility between your graphic card and the versions of CUDA and cuDNN you want to install. This is a bit tricky and time consuming!
 
 If you don't have an Nvidia GPU, you can use the CPU, which will be slower for deep learning computations. 
 
@@ -69,9 +69,11 @@ The following R libraries must be installed (using bioconductor):
 - motifmatchr
 - kebabs
 
-
 <!-- SESSION 1 -->
-## Session 1
+## Day 1
+
+During the morning of the first day, we will first preprocess ChIP-seq/DNase-seq peaks obtained from different experiments: CTCF, POL2, H3K4me3 and DNase-seq. 
+
 
 <!-- SESSION 2 -->
-## Session 2
+## Day 2
