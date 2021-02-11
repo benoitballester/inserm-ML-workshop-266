@@ -34,24 +34,40 @@ We will focus on the prediction of genomic experimental output such as transcrip
 The following R libraries must be installed:
 - GenomicRanges
 - Biostrings
-pROC
-tensorflow
-keras
-reticulate
-TFBSTools
-JASPAR2020
-tensorflow
-keras
-reticulate
-motifStack
-universalmotif
-motifmatchr
-kebabs
-pROC
-glmnet
-doParallel
-ranger
-e1071
+- pROC
+- tensorflow
+- keras
+- reticulate
+- TFBSTools
+- JASPAR2020
+- tensorflow
+- keras
+- reticulate
+- motifStack
+- universalmotif
+- motifmatchr
+- kebabs
+- pROC
+- glmnet
+- doParallel
+- ranger
+- e1071
+- gkmSVM
+library(data.table)
+library(ggplot2)
+library(gplots)
+
+The following R libraries must be installed (using bioconductor):
+- BSgenome.Hsapiens.UCSC.hg19
+- BSgenome.Hsapiens.UCSC.hg19.masked
+- GenomicRanges
+- Biostrings
+- TFBSTools
+- JASPAR2020
+- motifStack
+- universalmotif
+- motifmatchr
+- kebabs
 
 
 ### Installation
