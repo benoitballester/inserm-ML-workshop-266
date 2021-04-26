@@ -21,9 +21,6 @@ setwd("/media/raphael/SSD2/atelier_INSERM")
 
 source("scriptR/functions.R")
 
-use_condaenv('r-reticulate')
-tf$constant("Hello Tensorflow")
-
 
 #### CREATE FOLDERS
 

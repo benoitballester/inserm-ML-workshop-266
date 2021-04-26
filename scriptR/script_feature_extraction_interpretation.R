@@ -109,7 +109,7 @@ plot(motifTrimmed1)
 
 # Export motifs for dimension reduction with RSAT matrix-clustering
 kernelPFMListUM=convert_motifs(PFMTrimmedList, class = "universalmotif-universalmotif")
-write_transfac(kernelPFMListUM,paste0("results/motif/trimmed_redundant_motifs_",expe,".tf"))
+write_jaspar(kernelPFMListUM,paste0("results/motif/trimmed_redundant_motifs_",expe,".jaspar"))
 
 
 #### MOTIF DIMENSION REDUCTION

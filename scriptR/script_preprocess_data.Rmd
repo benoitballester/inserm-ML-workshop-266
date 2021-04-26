@@ -1,0 +1,131 @@
+---
+title: "Data preprocessing"
+author: "Raphael Mourad, Maître de Conférences, Université Paul Sabatier"
+date: "10/02/2021"
+output: html_document
+---
+
+## SETUP PROJECT FOLDER
+
+Set up your project folder to your folder "atelier_INSERM".
+```{r, setup}
+knitr::opts_knit$set(root.dir = "/media/raphael/SSD2/atelier_INSERM")
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## AIM OF THE SCRIPT
+
+This script is used to preprocess ChIP-seq peak data, generate control peaks and get corresponding DNA sequences in fasta format.
+
+## LOAD LIBRARIES
+
+Load R librairies.
+Remove suppressPackageStartupMessages() for debugging!
+```{r}
+suppressPackageStartupMessages(library(BSgenome.Hsapiens.UCSC.hg19))
+suppressPackageStartupMessages(library(BSgenome.Hsapiens.UCSC.hg19.masked))
+suppressPackageStartupMessages(library(GenomicRanges))
+suppressPackageStartupMessages(library(gkmSVM))
+suppressPackageStartupMessages(library(Biostrings))
+```
+
+## LOAD IN-HOUSE FUNCTIONS
+
+```{r}
+suppressPackageStartupMessages(source("scriptR/functions.R"))
+```
+
+## CREATE FOLDERS
+
+```{r}
+dir.create("data")
+dir.create("data/bed")
+dir.create("data/fasta")
+dir.create("data")
+dir.create("results")
+dir.create("results/model")
+dir.create("results/motif")
+dir.create("results/SNP")
+```
+
+## SOME PARAMETERS
+
+Define parameters for the analysis:  
+- peakSize is the resized peak size. For machine/deep learning, it is easier to work with peaks have the same size.  
+- kpeaks is the number of best peaks used. Note that all peaks can also be used.  
+- expe is the ChIP-seq experiment. For instance, CTCF for CTCF ChIP-seq or POL2 for RNA Polymerase 2 ChIP-seq experiment. 
+
+```{r}
+peakSize=201
+kpeaks=4000
+expe="CTCF"
+DNAletters=c("A","C","G","T")
+```
+
+## INPUT FILE NAMES
+
+Set file names, which includes:  
+- positive peaks from ChIP-seq and negative peaks from the control generator function genNullSeqs().  
+- bed (genomic ranges) and fasta files (corresponding DNA sequences).
+```{r}
+fileBedPos=paste0("data/bed/",expe,"_GM12878_hg19_",kpeaks,"_pos.bed")
+fileBedNeg=paste0("data/bed/",expe,"_GM12878_hg19_",kpeaks,"_neg.bed")
+fileFastaPos=paste0("data/fasta/",expe,"_GM12878_hg19_",kpeaks,"_pos.fa")
+fileFastaNeg=paste0("data/fasta/",expe,"_GM12878_hg19_",kpeaks,"_neg.fa")
+```
+
+
+## LOAD, PROCESS AND SAVE PROCESSED DATA
+
+Set up chromosome information for hg19 human genome assembly:
+```{r}
+Genome=BSgenome.Hsapiens.UCSC.hg19
+Chr.V=c(paste0("chr",1:22),"chrX")
+SeqInfo=seqinfo(BSgenome.Hsapiens.UCSC.hg19)[Chr.V]
+```
+
+Load ChIP-seq/DNase-seq peaks:
+```{r}
+file_peaks=paste0("data/narrowPeak/",expe,"_GM12878_hg19.narrowPeak")
+dataPeaks=read.table(file_peaks,sep="\t",header=F)
+```
+
+Resize peaks:
+```{r}
+peaks.GR=GRanges(dataPeaks[,1],IRanges(dataPeaks[,2],dataPeaks[,3]),score=dataPeaks[,7])
+peaks.GR=resize(peaks.GR, width=peakSize, fix="center")
+```
+
+Select k best peaks and export to bed:
+```{r}
+peaksSorted.GR=peaks.GR[order(peaks.GR$score,decreasing=T)]
+dataPeaksSorted=as.data.frame(peaksSorted.GR)
+dataPeaksBest=dataPeaksSorted[1:kpeaks,]
+write.table(dataPeaksBest[,1:3],fileBedPos,sep='\t',col.names=F,row.names=F,quote=F)
+```
+
+Generate fasta sequences from the experimental peaks as well as control fasta sequences.  
+GC content and repeat distribution similar to the experimental peaks.  
+The number of control peaks drawn should be similar to experimental peaks (balanced dataset).
+```{r}
+genNullSeqs(inputBedFN=fileBedPos,nMaxTrials=10,xfold=1.5,genomeVersion="hg19",
+	outputPosFastaFN=fileFastaPos,outputBedFN=fileBedNeg,outputNegFastaFN=fileFastaNeg,length_match_tol=0)
+```
+
+The function genNullSeqs generates sequences of length 200b instead of 201b.  
+We want to correct this.
+```{r}
+dataPeaksNeg=read.table(fileBedNeg,sep="\t",header=F)
+peaksNeg.GR=GRanges(dataPeaksNeg[,1],IRanges(dataPeaksNeg[,2],dataPeaksNeg[,3]+1))
+peaksNeg.GR=peaksNeg.GR[nchar(as.character(seqnames(peaksNeg.GR)))<6]
+write.table(as.data.frame(peaksNeg.GR)[,1:3],fileBedNeg,sep='\t',col.names=F,row.names=F,quote=F)
+peaksNeg.seq=getSeq(BSgenome.Hsapiens.UCSC.hg19, names=seqnames(peaksNeg.GR),
+     start=start(peaksNeg.GR), end=end(peaksNeg.GR))
+names(peaksNeg.seq)=paste0(seqnames(peaksNeg.GR),"_",1:length(peaksNeg.GR))
+writeXStringSet(peaksNeg.seq,fileFastaNeg)
+peaksPos.GR=GRanges(dataPeaksBest[,1],IRanges(dataPeaksBest[,2],dataPeaksBest[,3]))
+peaksPos.seq=getSeq(BSgenome.Hsapiens.UCSC.hg19, names=seqnames(peaksPos.GR),
+     start=start(peaksPos.GR), end=end(peaksPos.GR))
+names(peaksPos.seq)=paste0(seqnames(peaksPos.GR),"_",1:length(peaksPos.GR))
+writeXStringSet(peaksPos.seq,fileFastaPos)
+```
