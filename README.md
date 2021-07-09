@@ -1,5 +1,7 @@
 # Phase 2 : Inserm workshop on Machine Learning in Biology (Raphael Mourad, Assist. Prof. University of Toulouse III)
 
+![alt text](https://github.com/morphos30/PredDSB/blob/master/header_googlesites.png)
+
 <!-- TABLE OF CONTENTS -->
 <details open="open">
   <summary>Table of Contents</summary>
