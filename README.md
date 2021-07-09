@@ -40,7 +40,7 @@ If you don't have an Nvidia GPU, you can use the CPU, which will be slower for d
 
 You need to install tensorflow and keras R packages. See the following link for explanations:
 https://tensorflow.rstudio.com/installation/gpu/local_gpu/
-Ideally, you should install libraries for GPUs if you have an Nvidia GPU. If not, you can also install tensorflow and keras for cpu. 
+Ideally, you should install libraries for GPUs if you have an Nvidia GPU. If not, you can also install tensorflow and keras for CPU. 
 
 The following R libraries must be installed (using install.packages() function):
 - pROC, reticulate, tensorflow, keras, reticulate, glmnet, doParallel, ranger, e1071, gkmSVM, data.table, ggplot2, gplots,
