@@ -1,7 +1,5 @@
 # Phase 2 : Inserm workshop on Machine Learning in Biology (Raphael Mourad, Assist. Prof. University of Toulouse III)
 
-![alt text](https://github.com/benoitballester/inserm-ML-workshop-266/header_googlesites.png?raw=true)
-
 <!-- TABLE OF CONTENTS -->
 <details open="open">
   <summary>Table of Contents</summary>
@@ -20,6 +18,8 @@
     <li><a href="#day2">Day 2</a></li>
   </ol>
 </details>
+
+![alt text](https://github.com/benoitballester/inserm-ML-workshop-266/header_googlesites.png?raw=true)
 
 
 <!-- ABOUT THE WORKSHOP -->
