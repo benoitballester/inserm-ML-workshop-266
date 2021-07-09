@@ -1,4 +1,4 @@
-# Phase 2 : Inserm workshop on Machine Learning in Biology (Raphael Mourad, Assist. Prof. University of Toulouse III)
+# Phase 2 : Inserm workshop on Machine Learning in Biology (Raphael Mourad, Assist. Prof. at Univ. of Toulouse III)
 
 ![plot](https://github.com/benoitballester/inserm-ML-workshop-266/blob/main/header_googlesites.png?raw=true)
 
