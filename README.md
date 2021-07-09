@@ -70,7 +70,7 @@ The following R libraries must be installed (using bioconductor):
 - kebabs
 
 <!-- ARTICLES YOU CAN READ -->
-## Articles you can read
+## Articles to read
 
 In the folder articles, many deep learning models applied in genomics are saved. We advice you to read at least some of these articles to better understand the deep learning models, the genomic data and the aims of these models. 
 
