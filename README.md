@@ -19,7 +19,7 @@
   </ol>
 </details>
 
-![alt text](https://github.com/benoitballester/inserm-ML-workshop-266/header_googlesites.png?raw=true)
+![plot](https://github.com/benoitballester/inserm-ML-workshop-266/header_googlesites.png?raw=true)
 
 
 <!-- ABOUT THE WORKSHOP -->
