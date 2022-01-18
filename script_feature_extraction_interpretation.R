@@ -1,0 +1,172 @@
+
+
+# conda activate /home/mourad/.local/share/r-miniconda/envs/r-reticulate
+# install_tensorflow(method = 'conda', envname = '/home/raphael/.local/share/r-miniconda/envs/r-reticulate')
+
+
+#### LOAD LIBRARIES
+
+library(GenomicRanges)
+library(Biostrings)
+library(TFBSTools)
+library(JASPAR2020)
+library(tensorflow)
+library(keras)
+library(reticulate)
+library(motifStack)
+library(universalmotif)
+
+
+
+#### SETUP PROJECT FOLDER
+
+#setwd("/media/mourad/diskSave/MCF_Toulouse/enseignement/atelier_INSERM/")
+setwd("/media/raphael/SSD2/atelier_INSERM")
+
+
+#### LOAD FUNCTIONS
+
+source("scriptR/functions.R")
+
+use_condaenv('r-reticulate')
+tf$constant("Hello Tensorflow")
+
+
+#### SOME PARAMETERS
+
+peakSize=201
+kpeaks=4000
+expe="DNase"
+DNAletters=c("A","C","G","T")
+vocab_size=length(DNAletters)
+
+
+#### INPUT FILE NAMES
+
+fileBedPos=paste0("data/bed/",expe,"_GM12878_hg19_",kpeaks,"_pos.bed")
+fileBedNeg=paste0("data/bed/",expe,"_GM12878_hg19_",kpeaks,"_neg.bed")
+fileFastaPos=paste0("data/fasta/",expe,"_GM12878_hg19_",kpeaks,"_pos.fa")
+fileFastaNeg=paste0("data/fasta/",expe,"_GM12878_hg19_",kpeaks,"_neg.fa")
+
+
+#### LOAD PROCESSED DATA
+
+# Load ChIP-seq and control fasta sequences
+peakPos.seq=readDNAStringSet(fileFastaPos)
+peakNeg.seq=readDNAStringSet(fileFastaNeg)
+
+# Bind positive and negative sequences, and make label
+peakAll.seq=c(peakPos.seq,peakNeg.seq)
+label=c(rep(1,length(peakPos.seq)),rep(0,length(peakNeg.seq)))
+
+# Shuffle sequence indices
+idxS=sample(1:length(peakAll.seq))
+peakAllS.seq=peakAll.seq[idxS]
+labelS=label[idxS]
+
+# Split train and test indices
+percTrain=0.7
+idxTrain=1:(ceiling(length(labelS)*percTrain))
+idxTest=(length(idxTrain)+1):length(labelS)
+labelTrain=labelS[idxTrain]
+labelTest=labelS[idxTest]
+
+
+#### LOAD MODEL
+
+# One hot encoding
+oneHotPos=convertOneHot(peakPos.seq)
+
+# Load CNN1 model
+file_model=paste0("results/model/CNN1_model_",expe,".hdf5")
+model=load_model_hdf5(file_model)
+
+
+#### FEATURE EXTRACTION
+
+# Extract kernels from CNN1 convolutional layer
+# object "model" should be the CNN1!
+conv1d_layer_model <- keras_model(inputs = model$input, outputs = get_layer(model, 'conv1d_cnn1')$output)
+
+# Get the kernel activation outputs
+conv1d_output <- predict(conv1d_layer_model, oneHotPos)
+print(dim(conv1d_output)) # To see the size of the tensor
+kernelSize=peakSize-dim(conv1d_output)[2]+1
+
+# Convert kernels to Position Frequency Matrices (PFMs)
+activationThreshold=0.15
+kernelPFMList=convertToPWMs(conv1d_output, peakPos.seq, activationThreshold)
+
+# Plot first motif
+motif1 <- new("pcm", mat=as.matrix(kernelPFMList[[1]]), name=ID(kernelPFMList[[1]]))
+plot(motif1)
+
+# Trimming and filtering of motifs based on information content
+ICthreshold=0.9
+PFMTrimmedList=motifTrimming(kernelPFMList,ICthreshold)
+motifTrimmed1 <- new("pcm", mat=as.matrix(PFMTrimmedList[[1]]), name=ID(PFMTrimmedList[[1]]))
+plot(motifTrimmed1)
+
+# Export motifs for dimension reduction with RSAT matrix-clustering
+kernelPFMListUM=convert_motifs(PFMTrimmedList, class = "universalmotif-universalmotif")
+write_jaspar(kernelPFMListUM,paste0("results/motif/trimmed_redundant_motifs_",expe,".jaspar"))
+
+
+#### MOTIF DIMENSION REDUCTION
+
+# On https://rsat01.biologie.ens.fr/rsat/matrix-clustering_form.cgi
+# Run matrix clustering using the transfac file of motifs
+# After, download the root motifs (click on "Additional Files")
+# Rename it to paste0("root_motifs_",expe,".tf")
+
+
+#### FEATURE IMPORTANCE
+
+# Load root motifs
+rootMotifsUM=read_transfac(paste0("results/motif/root_motifs_",expe,".tf"))
+rootMotifs=do.call(PFMatrixList,convert_motifs(rootMotifsUM, "TFBSTools-PFMatrix"))
+
+# DNA motif counts
+motif_ix=matchMotifs(rootMotifs,peakAllS.seq,out="scores",p.cutoff=1e-4)
+mcAllS=motifCounts(motif_ix)
+mcTrain=mcAllS[idxTrain,]
+mcTest=mcAllS[idxTest,]
+
+# Random forests
+dataRF_motif=data.frame(label=labelTrain,as(mcTrain,"matrix"))
+RF_motif=ranger(label ~ .,data=dataRF_motif,importance="permutation")
+predRF_motif=predict(RF_motif,data=data.frame(as(mcTest,"matrix")))$predictions
+rocRF_motif=pROC::roc(as.factor(labelTest),predRF_motif,ci=T)
+plot(rocRF_motif,main=paste0("AUROC: ", round(pROC::auc(rocRF_motif),3)))
+
+# Variable importance
+motifID=ID(rootMotifs)
+dataImportanceMotif=data.frame(motifID,importance=importance(RF_motif))
+dataImportanceMotif=dataImportanceMotif[order(importance(RF_motif),decreasing=T)[1:20],]
+dataImportanceMotif2=dataImportanceMotif[order(dataImportanceMotif[,2]),]
+par(mar=rep(10,4))
+barplot(dataImportanceMotif2[,2],names.arg=dataImportanceMotif2[,1],horiz=T,las=2,xlab="Importance")
+
+
+#### FEATURE (MOTIF) VISUALIZATION
+
+# Plot best motif logo from PFM matrix
+rootMotifsMS=lapply(rootMotifs,function(x){new("pcm", mat=as.matrix(x), name=ID(x))})
+idxBestRootMotif=which(ID(rootMotifs)==dataImportanceMotif[1,1])
+plot(rootMotifsMS[[idxBestRootMotif]])
+
+# Plot motif clustering tree
+file_plot_tree_motifs=paste0("results/motif/plot_tree_motifs_",expe,".pdf")
+pdf(file_plot_tree_motifs,30,200)
+motifStack(rootMotifsMS, layout="tree")
+dev.off()
+
+
+
+
+
+
+
+
+
+

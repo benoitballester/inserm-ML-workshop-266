@@ -1,0 +1,202 @@
+---
+title: "Machine learning"
+author: "Raphael Mourad, Maître de Conférences, Université Paul Sabatier"
+date: "10/02/2021"
+output: html_document
+---
+
+## SETUP PROJECT FOLDER
+
+Set up your project folder to your folder "atelier_INSERM".
+```{r, setup}
+knitr::opts_knit$set(root.dir = "/shared/ifbstor1/home/rmourad/Deep-Learning-for-Genomics-Training-main/")
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## AIM OF THE SCRIPT
+
+This script is used to train machine learning models for binary classification of positive and negative peak sequences.
+
+## LOAD LIBRARIES
+
+Load R librairies.
+Remove suppressPackageStartupMessages() for debugging!
+```{r, libraries}
+suppressPackageStartupMessages(library(GenomicRanges))
+suppressPackageStartupMessages(library(gkmSVM))
+suppressPackageStartupMessages(library(Biostrings))
+suppressPackageStartupMessages(library(JASPAR2020))
+suppressPackageStartupMessages(library(TFBSTools))
+suppressPackageStartupMessages(library(motifmatchr))
+suppressPackageStartupMessages(library(kebabs))
+suppressPackageStartupMessages(library(pROC))
+suppressPackageStartupMessages(library(glmnet))
+suppressPackageStartupMessages(library(doParallel))
+suppressPackageStartupMessages(library(ranger))
+suppressPackageStartupMessages(library(e1071))
+```
+
+## LOAD FUNCTIONS
+
+```{r, function}
+suppressPackageStartupMessages(source("scriptR/functions.R"))
+```
+
+## SOME PARAMETERS
+
+Define parameters for the analysis:  
+- peakSize is the resized peak size. For machine/deep learning, it is easier to work with peaks have the same size.  
+- kpeaks is the number of best peaks used. Note that all peaks can also be used.  
+- expe is the ChIP-seq experiment. For instance, CTCF for CTCF ChIP-seq or POL2 for RNA Polymerase 2 ChIP-seq experiment. 
+```{r, parameters}
+peakSize=201
+kpeaks=4000
+expe="CTCF"
+DNAletters=c("A","C","G","T")
+```
+
+## INPUT FILE NAMES
+
+Set file names, which includes:  
+- positive peaks from ChIP-seq and negative peaks from the control generator function genNullSeqs().  
+- bed (genomic ranges) and fasta files (corresponding DNA sequences).
+```{r, files}
+fileBedPos=paste0("data/bed/",expe,"_GM12878_hg19_",kpeaks,"_pos.bed")
+fileBedNeg=paste0("data/bed/",expe,"_GM12878_hg19_",kpeaks,"_neg.bed")
+fileFastaPos=paste0("data/fasta/",expe,"_GM12878_hg19_",kpeaks,"_pos.fa")
+fileFastaNeg=paste0("data/fasta/",expe,"_GM12878_hg19_",kpeaks,"_neg.fa")
+```
+
+## LOAD PROCESSED DATA
+
+Load ChIP-seq and control fasta sequences:
+```{r, read}
+peakPos.seq=readDNAStringSet(fileFastaPos)
+peakNeg.seq=readDNAStringSet(fileFastaNeg)
+print(peakPos.seq)
+```
+
+Bind positive and negative sequences, and make label:
+```{r, bind}
+peakAll.seq=c(peakPos.seq,peakNeg.seq)
+label=c(rep(1,length(peakPos.seq)),rep(0,length(peakNeg.seq)))
+```
+
+Shuffle sequence indices:
+```{r, shuffle}
+idxS=sample(1:length(peakAll.seq))
+peakAllS.seq=peakAll.seq[idxS]
+labelS=label[idxS]
+print(labelS[1:5])
+```
+
+Split train and test indices:
+```{r, split}
+percTrain=0.7
+idxTrain=1:(ceiling(length(labelS)*percTrain))
+idxTest=(length(idxTrain)+1):length(labelS)
+labelTrain=labelS[idxTrain]
+labelTest=labelS[idxTest]
+```
+
+
+## BUILD FEATURES FOR MACHINE LEARNING
+
+Parallel computing (for glmnet)
+```{r, parallel}
+registerDoParallel(4)
+```
+
+K-mer counts as features.
+Here we used gapped k-mers which allow some flexibility. 
+For instance: ATTNNNTGC is a gapped k-mer of parameter k=3 and m=3.
+```{r, kmercounts}
+specK=gappyPairKernel(k=3, m=3, normalized=F) # normalization accounts for different sequence length
+kmerAllS=getExRep(peakAllS.seq,kernel=specK,sparse=T)
+kmerAllS=as(kmerAllS,"Matrix")
+kmerTrain=kmerAllS[idxTrain,]
+kmerTest=kmerAllS[idxTest,]
+print(kmerTrain[1:5,1:5])
+```
+
+Position Weigth Matrix (PWM) motif counts as features.  
+Load DNA binding protein motif PWMs from JASPAR database:
+```{r, pwm}
+opts <- list(species=9606, all_versions=TRUE)
+PFMatrixList <- getMatrixSet(JASPAR2020, opts)
+proteinNames=name(PFMatrixList)
+motifID=names(PFMatrixList)
+print(PFMatrixList[[1]])
+```
+
+DNA motif counts:
+```{r, motifcounts}
+motif_ix=matchMotifs(PFMatrixList,peakAllS.seq,out="scores",p.cutoff=1e-4)
+mcAllS=motifCounts(motif_ix)
+mcTrain=mcAllS[idxTrain,]
+mcTest=mcAllS[idxTest,]
+print(mcTrain[1:5,1:10])
+```
+
+
+## MACHINE LEARNING METHODS
+
+## USING KMERS
+
+Lasso logistic regression.  
+NB: glmnet is optimized for sparse X input matrix.
+```{r, glmnet_kmer}
+cvlasso_kmer=cv.glmnet(x=kmerTrain,y=labelTrain,family="binomial",parallel=TRUE)
+print(cvlasso_kmer)
+predLasso_kmer=predict(cvlasso_kmer,newx=kmerTest,type="response")[,1]
+print(predLasso_kmer[1:5])
+rocLasso_kmer=pROC::roc(as.factor(labelTest),predLasso_kmer,ci=T)
+plot(rocLasso_kmer,main=paste0("AUROC: ", round(pROC::auc(rocLasso_kmer),3)))
+```
+
+## USING DNA MOTIFS
+
+Lasso logistic regression:
+```{r, glmnet_motifs}
+cvlasso_motif=cv.glmnet(x=mcTrain,y=labelTrain,family="binomial",parallel=TRUE)
+predLasso_motif=predict(cvlasso_motif,newx=mcTest,type="response")[,1]
+rocLasso_motif=pROC::roc(as.factor(labelTest),predLasso_motif,ci=T)
+plot(rocLasso_motif,main=paste0("AUROC: ", round(pROC::auc(rocLasso_motif),3)))
+```
+
+Random forests:
+```{r, randomforests_motifs}
+dataRF_motif=data.frame(label=as.factor(labelTrain),as(mcTrain,"matrix"))
+RF_motif=ranger(label ~ .,data=dataRF_motif,importance="permutation",probability=T)
+predRF_motif=predict(RF_motif,data=data.frame(as(mcTest,"matrix")))$predictions[,2]
+rocRF_motif=pROC::roc(as.factor(labelTest),predRF_motif,ci=T)
+plot(rocRF_motif,main=paste0("AUROC: ", round(pROC::auc(rocRF_motif),3)))
+```
+
+Extract variable importances from random forests.
+Allows to evaluate the predictive power of each feature.
+```{r, variable_importances}
+dataImportanceMotif=data.frame(motifID,proteinNames,nameID=paste0(motifID,"_",proteinNames),importance=importance(RF_motif))
+dataImportanceMotif=dataImportanceMotif[order(importance(RF_motif),decreasing=T)[1:20],]
+dataImportanceMotif=dataImportanceMotif[order(dataImportanceMotif[,4]),]
+```
+
+Plot variable importances.
+```{r, plot_vi}
+#knitr::opts_chunk$set(fig.width=40, fig.height=30) 
+#par(mar=rep(10,4))
+barplot(dataImportanceMotif[,4],names.arg=dataImportanceMotif[,3],cex.names=0.5,horiz=T,las=2,xlab="Importance")
+#knitr::opts_chunk$set(fig.width=7, fig.height=7) 
+```
+
+Support vector machine (a bit slow):
+```{r, SVM_motifs}
+dataSVM_motif=data.frame(label=labelTrain,as(mcTrain,"matrix"))
+SVM_motif=svm(label ~ ., data=dataSVM_motif, kernel="linear",scale=F)
+predSVM_motif=predict(SVM_motif,newdata=data.frame(as(mcTest,"matrix")))
+rocSVM_motif=pROC::roc(as.factor(labelTest),predSVM_motif,ci=T)
+plot(rocSVM_motif,main=paste0("AUROC: ", round(pROC::auc(rocSVM_motif),3)))
+```
+
+
+
